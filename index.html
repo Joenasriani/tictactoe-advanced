@@ -14,7 +14,6 @@
             --glass: rgba(255, 255, 255, 0.05);
         }
 
-        /* Prevent elastic scrolling on mobile */
         html, body {
             height: 100%;
             height: 100dvh;
@@ -41,25 +40,23 @@
             transform-style: preserve-3d;
             width: 100%;
             height: 100%;
-            max-width: 800px; /* Cap width for desktops */
+            max-width: 800px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-evenly; /* Distribute space */
+            justify-content: space-evenly;
             padding: 1rem;
             will-change: transform;
         }
 
         .title-font { font-family: 'Orbitron', sans-serif; }
 
-        /* Depth Layers */
         .layer-back { transform: translateZ(-20px); }
         .layer-base { transform: translateZ(0px); }
         .layer-mid { transform: translateZ(20px); }
         .layer-top { transform: translateZ(40px); }
         .layer-pop { transform: translateZ(60px); }
 
-        /* Cells */
         .cell {
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(8px);
@@ -67,13 +64,10 @@
             box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
             transform-style: preserve-3d;
             position: relative;
-            /* Remove tap highlight on mobile */
             -webkit-tap-highlight-color: transparent;
         }
 
-        .cell:active {
-            transform: scale(0.95);
-        }
+        .cell:active { transform: scale(0.95); }
 
         .x-mark, .o-mark {
             opacity: 0;
@@ -97,7 +91,6 @@
             box-shadow: 0 0 20px rgba(255,255,255,0.2) !important;
         }
 
-        /* Glass Panels */
         .glass-panel {
             background: var(--glass);
             backdrop-filter: blur(12px);
@@ -107,7 +100,6 @@
             transform-style: preserve-3d;
         }
 
-        /* Ambient Background */
         .ambient-glow {
             position: absolute;
             width: 100vw;
@@ -118,7 +110,6 @@
             pointer-events: none;
         }
         
-        /* Modal Inputs */
         .input-glass {
             background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -126,18 +117,13 @@
             text-align: center;
             letter-spacing: 0.1em;
         }
-        .input-glass:focus {
-            outline: none;
-            border-color: var(--neon-blue);
-        }
+        .input-glass:focus { outline: none; border-color: var(--neon-blue); }
         
-        /* Responsive Grid Logic */
         #board-container {
-            /* Maximize size but maintain aspect ratio and fit in view */
             width: 100%;
-            max-width: 500px; /* Tablet/Desktop cap */
+            max-width: 500px;
             aspect-ratio: 1/1;
-            max-height: 60vh; /* Don't get too tall on landscape mobile */
+            max-height: 60vh;
         }
     </style>
 </head>
@@ -146,13 +132,13 @@
     <div id="tilt-container" class="tilt-scene">
         <div class="ambient-glow"></div>
 
-        <!-- HEADER SECTION -->
+        <!-- HEADER -->
         <div class="w-full flex flex-col items-center z-10 layer-top flex-shrink-0">
             <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold title-font mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-2xl text-center">
                 TIC TAC TOE
             </h1>
             
-            <!-- Info Badge -->
+            <!-- Grid Indicator -->
             <div id="grid-indicator" class="text-[10px] sm:text-xs font-mono text-cyan-200 bg-slate-800/80 px-3 py-1 rounded-full border border-cyan-500/30 mb-2 shadow-[0_0_10px_rgba(0,243,255,0.1)] transition-all duration-300">
                 3x3 | WIN: 3
             </div>
@@ -180,7 +166,7 @@
             </div>
         </div>
 
-        <!-- BOARD SECTION (Flexible Growth) -->
+        <!-- BOARD -->
         <div id="board-container" class="relative z-10 layer-mid flex items-center justify-center my-2 sm:my-4">
             <div class="absolute -inset-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-xl blur-xl opacity-20 layer-back"></div>
             
@@ -191,7 +177,7 @@
             </div>
         </div>
 
-        <!-- CONTROLS SECTION -->
+        <!-- CONTROLS -->
         <div class="flex flex-col gap-2 w-full max-w-[300px] z-10 layer-top flex-shrink-0">
             <div class="grid grid-cols-3 gap-2 bg-slate-800/60 backdrop-blur-md p-1 rounded-lg border border-slate-700/50">
                 <button id="mode-cpu" class="py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg">CPU</button>
@@ -204,19 +190,24 @@
         </div>
     </div>
 
-    <!-- ONLINE LOBBY MODAL -->
+    <!-- LEVEL UP ALERT OVERLAY -->
+    <div id="level-alert" class="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-500 bg-black/60 backdrop-blur-sm">
+        <div id="level-alert-content" class="transform scale-50 transition-transform duration-500 bg-slate-900/90 border-2 border-neon-blue p-8 rounded-2xl flex flex-col items-center shadow-[0_0_50px_rgba(0,243,255,0.3)]">
+           <div class="text-5xl mb-3">⚠️</div>
+           <h3 class="text-2xl font-bold text-white title-font text-center tracking-widest">BOARD EXPANDED</h3>
+           <p class="text-cyan-400 font-bold text-lg mt-2 text-center">CONNECT <span id="alert-win-count" class="text-white text-2xl mx-1">4</span> TO WIN!</p>
+        </div>
+    </div>
+
+    <!-- LOBBY MODAL -->
     <div id="lobby-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 bg-black/80 backdrop-blur-md px-4">
         <div class="glass-panel bg-slate-900 border border-slate-600 p-6 rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 w-full max-w-sm flex flex-col items-center">
             <h2 class="text-lg font-bold text-white mb-4 title-font tracking-wide">MULTIPLAYER</h2>
             <div class="w-full flex flex-col gap-3">
                 <button id="btn-create-room" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold text-white text-sm">CREATE ROOM</button>
-                
                 <div class="relative flex items-center py-1">
-                    <div class="flex-grow border-t border-slate-700"></div>
-                    <span class="flex-shrink-0 mx-3 text-slate-500 text-[10px]">OR</span>
-                    <div class="flex-grow border-t border-slate-700"></div>
+                    <div class="flex-grow border-t border-slate-700"></div><span class="flex-shrink-0 mx-3 text-slate-500 text-[10px]">OR</span><div class="flex-grow border-t border-slate-700"></div>
                 </div>
-
                 <div class="flex gap-2">
                     <input type="text" id="join-room-input" placeholder="CODE" maxlength="6" class="flex-1 p-2 rounded-lg input-glass font-mono text-base placeholder-slate-500 uppercase">
                     <button id="btn-join-room" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 rounded-lg font-bold text-white text-sm">JOIN</button>
@@ -232,9 +223,7 @@
             <div id="modal-icon" class="text-5xl mb-3 animate-bounce">🏆</div>
             <h2 id="modal-title" class="text-xl font-bold text-white mb-1 text-center title-font bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">PLAYER X WINS!</h2>
             <p id="modal-subtitle" class="text-slate-400 mb-5 text-center text-xs">Nicely done.</p>
-            <button id="btn-modal-action" onclick="handleModalAction()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform text-sm">
-                PLAY AGAIN
-            </button>
+            <button id="btn-modal-action" onclick="handleModalAction()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform text-sm">PLAY AGAIN</button>
         </div>
     </div>
 
@@ -248,15 +237,9 @@
         let app, auth, db, user, onlineUnsubscribe = null, myOnlineRole = null, currentRoomId = null;
 
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
-                else await signInAnonymously(auth);
-            };
-            initAuth();
-            onAuthStateChanged(auth, (u) => { user = u; if(user) updateStatus(); });
+            app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app);
+            const initAuth = async () => { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); };
+            initAuth(); onAuthStateChanged(auth, (u) => { user = u; if(user) updateStatus(); });
         } catch (e) { console.error("FB Init Err", e); }
 
         const boardElement = document.getElementById('board');
@@ -275,6 +258,11 @@
         const btnPvp = document.getElementById('mode-pvp');
         const btnCpu = document.getElementById('mode-cpu');
         const btnOnline = document.getElementById('mode-online');
+        
+        // Alert Elements
+        const levelAlert = document.getElementById('level-alert');
+        const levelAlertContent = document.getElementById('level-alert-content');
+        const alertWinCount = document.getElementById('alert-win-count');
 
         let currentGridSize = 3;
         let gameState = [];
@@ -288,37 +276,23 @@
         const X_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full x-mark"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
         const O_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full o-mark"><circle cx="12" cy="12" r="10"></circle></svg>`;
 
-        // --- RESPONSIVE 3D TILT ---
         const tiltContainer = document.getElementById('tilt-container');
-        let mouseX = window.innerWidth / 2;
-        let mouseY = window.innerHeight / 2;
-        let currentRotateX = 0, currentRotateY = 0;
-
+        let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2, currentRotateX = 0, currentRotateY = 0;
         document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-        // Handle Touch Move for mobile tilt
-        document.addEventListener('touchmove', (e) => {
-            mouseX = e.touches[0].clientX;
-            mouseY = e.touches[0].clientY;
-        }, { passive: true });
+        document.addEventListener('touchmove', (e) => { mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; }, { passive: true });
 
         function animate() {
-            const midX = window.innerWidth / 2;
-            const midY = window.innerHeight / 2;
-            // Reduce tilt intensity on smaller screens for usability
+            const midX = window.innerWidth / 2, midY = window.innerHeight / 2;
             const intensity = window.innerWidth < 600 ? 5 : 12; 
-            
             const targetY = ((mouseX - midX) / midX) * intensity;
             const targetX = -((mouseY - midY) / midY) * intensity;
-            
             currentRotateX += (targetX - currentRotateX) * 0.1;
             currentRotateY += (targetY - currentRotateY) * 0.1;
-            
             if (tiltContainer) tiltContainer.style.transform = `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`;
             requestAnimationFrame(animate);
         }
         animate();
 
-        // --- GAME LOGIC ---
         function initBoard() {
             gameState = Array(currentGridSize * currentGridSize).fill(null);
             boardElement.innerHTML = '';
@@ -327,16 +301,34 @@
 
             for (let i = 0; i < gameState.length; i++) {
                 const cell = document.createElement('div');
-                // Use aspect-square for perfect squares, rounded-md for small screens
                 cell.className = `cell aspect-square rounded-md sm:rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-center cursor-pointer relative overflow-hidden`;
                 cell.dataset.index = i;
                 cell.addEventListener('click', handleCellClick);
                 const content = document.createElement('div');
-                content.className = 'w-full h-full pointer-events-none flex items-center justify-center p-[10%]'; // Percent padding ensures icons don't touch edges
+                content.className = 'w-full h-full pointer-events-none flex items-center justify-center p-[10%]';
                 content.style.transformStyle = 'preserve-3d';
                 cell.appendChild(content);
                 boardElement.appendChild(cell);
             }
+            
+            // CHECK FOR ALERT CONDITION
+            if (currentGridSize >= 4) {
+                showLevelAlert(currentGridSize);
+            }
+        }
+
+        function showLevelAlert(size) {
+            alertWinCount.textContent = size;
+            levelAlert.classList.remove('opacity-0', 'pointer-events-none');
+            levelAlertContent.classList.remove('scale-50');
+            levelAlertContent.classList.add('scale-100');
+            
+            // Hide after 2 seconds
+            setTimeout(() => {
+                levelAlert.classList.add('opacity-0', 'pointer-events-none');
+                levelAlertContent.classList.remove('scale-100');
+                levelAlertContent.classList.add('scale-50');
+            }, 2500);
         }
 
         async function handleCellClick(e) {
@@ -344,13 +336,11 @@
             if(!cell) return;
             const index = parseInt(cell.dataset.index);
             if (gameState[index] || !isGameActive) return;
-
             if (gameMode === 'online') {
                 if (!user || currentPlayer !== myOnlineRole) { showToast("Not your turn!"); return; }
                 await sendMoveToFirebase(index);
                 return;
             }
-
             makeMove(index, currentPlayer);
             if (isGameActive && gameMode === 'cpu' && currentPlayer === 'O') {
                 statusElement.textContent = "CPU Thinking...";
@@ -365,39 +355,25 @@
             cell.innerHTML = player === 'X' ? X_ICON : O_ICON;
             const cellContainer = boardElement.children[index];
             cellContainer.classList.add(player === 'X' ? 'border-cyan-500/30' : 'border-fuchsia-500/30');
-            // Subtle 3D pop
             cellContainer.style.transform = "translateZ(20px) scale(1.02)";
-
             const winner = checkWin(gameState, currentGridSize);
             if (winner) endGame(false, winner);
             else if (!gameState.includes(null)) endGame(true);
-            else {
-                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-                updateStatus();
-            }
+            else { currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; updateStatus(); }
         }
 
-        // --- WIN LOGIC: N in a row for N size ---
         function checkWin(board, size, silent = false) {
-            // Rows
             for (let i = 0; i < size; i++) if (checkLine(board, i * size, 1, size, silent)) return board[i * size];
-            // Cols
             for (let i = 0; i < size; i++) if (checkLine(board, i, size, size, silent)) return board[i];
-            // Diagonals
             if (checkLine(board, 0, size + 1, size, silent)) return board[0];
             if (checkLine(board, size - 1, size - 1, size, silent)) return board[size - 1];
             return null;
         }
 
         function checkLine(board, start, step, count, silent) {
-            const first = board[start];
-            if (!first) return false;
+            const first = board[start]; if (!first) return false;
             let indices = [start];
-            for (let i = 1; i < count; i++) {
-                let idx = start + i * step;
-                if (board[idx] !== first) return false;
-                indices.push(idx);
-            }
+            for (let i = 1; i < count; i++) { let idx = start + i * step; if (board[idx] !== first) return false; indices.push(idx); }
             if (!silent) highlight(indices);
             return true;
         }
@@ -406,10 +382,7 @@
             if (!isGameActive && gameMode !== 'cpu_sim') return;
             indices.forEach(idx => {
                 const cell = boardElement.children[idx];
-                if (cell) {
-                    cell.classList.add('winning-cell', 'ring-2', 'ring-white');
-                    cell.style.transform = 'translateZ(40px) scale(1.1)';
-                }
+                if (cell) { cell.classList.add('winning-cell', 'ring-2', 'ring-white'); cell.style.transform = 'translateZ(40px) scale(1.1)'; }
             });
         }
 
@@ -432,25 +405,14 @@
             }
         }
 
-        // --- AI ---
         function cpuMove() {
             let available = gameState.map((v, i) => v === null ? i : null).filter(v => v !== null);
             if (available.length === 0) return;
-
-            // 3x3 Minimax
             if (currentGridSize === 3) {
                  let bestScore = -Infinity; let move;
-                 for (let idx of available) {
-                     gameState[idx] = 'O';
-                     let score = minimax(gameState, 0, false);
-                     gameState[idx] = null;
-                     if (score > bestScore) { bestScore = score; move = idx; }
-                 }
-                 makeMove(move, 'O');
-                 return;
+                 for (let idx of available) { gameState[idx] = 'O'; let score = minimax(gameState, 0, false); gameState[idx] = null; if (score > bestScore) { bestScore = score; move = idx; } }
+                 makeMove(move, 'O'); return;
             }
-
-            // Heuristic >3x3
             for (let idx of available) { gameState[idx] = 'O'; if (checkWin(gameState, currentGridSize, true)) { makeMove(idx, 'O'); return; } gameState[idx] = null; }
             for (let idx of available) { gameState[idx] = 'X'; if (checkWin(gameState, currentGridSize, true)) { gameState[idx] = null; makeMove(idx, 'O'); return; } gameState[idx] = null; }
             makeMove(available[Math.floor(Math.random() * available.length)], 'O');
@@ -467,12 +429,11 @@
             }
         }
 
-        // --- MODAL & RESET ---
         window.handleModalAction = function() { gameMode === 'online' ? handleOnlineReset() : handleLocalReset(); }
         function handleLocalReset() {
             hideModal();
             currentGridSize = isDrawState ? currentGridSize + 1 : 3;
-            if (currentGridSize > 6) currentGridSize = 3; // Safety cap to prevent too small cells on mobile
+            if (currentGridSize > 6) currentGridSize = 3; 
             isDrawState = false; gameState = []; isGameActive = true; currentPlayer = 'X';
             initBoard(); updateStatus();
         }
@@ -482,26 +443,18 @@
             if (myOnlineRole === 'X') {
                 let newSize = isDrawState ? currentGridSize + 1 : 3;
                 if (newSize > 6) newSize = 3;
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', currentRoomId), {
-                    board: Array(newSize * newSize).fill(null), gridSize: newSize, currentPlayer: 'X', status: 'playing', winner: null
-                });
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', currentRoomId), { board: Array(newSize * newSize).fill(null), gridSize: newSize, currentPlayer: 'X', status: 'playing', winner: null });
             }
         }
         function hideModal() {
-            winnerModal.classList.add('opacity-0', 'pointer-events-none');
-            winnerModal.children[0].classList.remove('scale-90');
-            winnerModal.children[0].classList.add('scale-75'); // Smaller scale animation
+            winnerModal.classList.add('opacity-0', 'pointer-events-none'); winnerModal.children[0].classList.remove('scale-90'); winnerModal.children[0].classList.add('scale-75');
         }
         function updateScoreboard() { scoreXElement.textContent = scoreX; scoreOElement.textContent = scoreO; }
         function updateStatus() {
             if (!isGameActive) return;
-            const p1Panel = document.getElementById('p1-panel');
-            const p2Panel = document.getElementById('p2-panel');
-            
-            // Highlight active player panel
+            const p1Panel = document.getElementById('p1-panel'); const p2Panel = document.getElementById('p2-panel');
             p1Panel.style.background = currentPlayer === 'X' ? 'rgba(0, 243, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
             p2Panel.style.background = currentPlayer === 'O' ? 'rgba(255, 0, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
-
             if (gameMode === 'online') {
                 statusElement.textContent = (currentPlayer === myOnlineRole) ? `YOUR TURN` : `OPPONENT'S TURN`;
                 statusElement.className = (currentPlayer === myOnlineRole) ? "h-5 text-center font-bold tracking-wide text-emerald-400 text-xs sm:text-sm layer-base w-full" : "h-5 text-center font-medium text-slate-400 text-xs sm:text-sm layer-base w-full";
@@ -512,41 +465,27 @@
         }
         function showModal(title, icon, subtitle, btnText) {
             modalTitle.textContent = title; modalIcon.textContent = icon; modalSubtitle.textContent = subtitle || ''; btnModalAction.textContent = btnText || 'PLAY AGAIN';
-            winnerModal.classList.remove('opacity-0', 'pointer-events-none');
-            winnerModal.children[0].classList.remove('scale-90');
-            winnerModal.children[0].classList.add('scale-100');
+            winnerModal.classList.remove('opacity-0', 'pointer-events-none'); winnerModal.children[0].classList.remove('scale-90'); winnerModal.children[0].classList.add('scale-100');
         }
         function showToast(msg) { statusElement.textContent = msg; setTimeout(updateStatus, 2000); }
 
-        // --- FIREBASE SYNC ---
         async function sendMoveToFirebase(index) {
-            const nextP = currentPlayer === 'X' ? 'O' : 'X';
-            const newBoard = [...gameState];
-            newBoard[index] = currentPlayer;
-            const winner = checkWin(newBoard, currentGridSize, true);
-            const isTie = !newBoard.includes(null);
-            let st = 'playing', w = null;
-            if (winner) { st = 'finished'; w = winner; } else if (isTie) { st = 'finished'; w = 'draw'; }
+            const nextP = currentPlayer === 'X' ? 'O' : 'X'; const newBoard = [...gameState]; newBoard[index] = currentPlayer;
+            const winner = checkWin(newBoard, currentGridSize, true); const isTie = !newBoard.includes(null);
+            let st = 'playing', w = null; if (winner) { st = 'finished'; w = winner; } else if (isTie) { st = 'finished'; w = 'draw'; }
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', currentRoomId), { board: newBoard, currentPlayer: nextP, status: st, winner: w });
         }
         function syncBoardFromSnapshot(data) {
             if (data.gridSize && data.gridSize !== currentGridSize) { currentGridSize = data.gridSize; initBoard(); }
             gameState = data.board; currentPlayer = data.currentPlayer;
             gameState.forEach((val, idx) => {
-                const cellC = boardElement.children[idx]; if (!cellC) return;
-                const cellContent = cellC.firstElementChild;
-                if (val && cellContent.innerHTML === '') {
-                    cellContent.innerHTML = val === 'X' ? X_ICON : O_ICON;
-                    cellC.classList.add(val === 'X' ? 'border-cyan-500/30' : 'border-fuchsia-500/30');
-                    cellC.style.transform = "translateZ(20px) scale(1.02)";
-                } else if (!val) {
-                    cellContent.innerHTML = ''; cellC.className = `cell aspect-square rounded-md sm:rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-center cursor-pointer relative overflow-hidden`; cellC.style.transform = "";
-                }
+                const cellC = boardElement.children[idx]; if (!cellC) return; const cellContent = cellC.firstElementChild;
+                if (val && cellContent.innerHTML === '') { cellContent.innerHTML = val === 'X' ? X_ICON : O_ICON; cellC.classList.add(val === 'X' ? 'border-cyan-500/30' : 'border-fuchsia-500/30'); cellC.style.transform = "translateZ(20px) scale(1.02)"; } 
+                else if (!val) { cellContent.innerHTML = ''; cellC.className = `cell aspect-square rounded-md sm:rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-center cursor-pointer relative overflow-hidden`; cellC.style.transform = ""; }
             });
             if (data.status === 'finished') { isGameActive = false; if (data.winner === 'draw') endGame(true); else { checkWin(gameState, currentGridSize); endGame(false, data.winner); } } else { isGameActive = true; hideModal(); updateStatus(); }
         }
 
-        // --- BUTTONS ---
         function setModeUI(mode) {
             btnPvp.className = btnCpu.className = btnOnline.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-slate-700 text-slate-300 hover:text-white";
             if (mode === 'pvp') btnPvp.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg";
@@ -568,5 +507,3 @@
     </script>
 </body>
 </html>
-
-
