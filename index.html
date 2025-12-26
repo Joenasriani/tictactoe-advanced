@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Tic-Tac-Toe Ultimate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --bg-dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Prevent elastic scrolling on mobile */
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            touch-action: none; 
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 243, 255, 0.08) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(255, 0, 255, 0.08) 0%, transparent 20%);
+            color: white;
+            perspective: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tilt-scene {
+            transform-style: preserve-3d;
+            width: 100%;
+            height: 100%;
+            max-width: 800px; /* Cap width for desktops */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly; /* Distribute space */
+            padding: 1rem;
+            will-change: transform;
+        }
+
+        .title-font { font-family: 'Orbitron', sans-serif; }
+
+        /* Depth Layers */
+        .layer-back { transform: translateZ(-20px); }
+        .layer-base { transform: translateZ(0px); }
+        .layer-mid { transform: translateZ(20px); }
+        .layer-top { transform: translateZ(40px); }
+        .layer-pop { transform: translateZ(60px); }
+
+        /* Cells */
+        .cell {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transform-style: preserve-3d;
+            position: relative;
+            /* Remove tap highlight on mobile */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cell:active {
+            transform: scale(0.95);
+        }
+
+        .x-mark, .o-mark {
+            opacity: 0;
+            transform: translateZ(30px) scale(0.5);
+            animation: popIn 0.3s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 60%;
+            height: 60%;
+        }
+
+        .x-mark { color: var(--neon-blue); filter: drop-shadow(0 0 4px var(--neon-blue)); }
+        .o-mark { color: var(--neon-pink); filter: drop-shadow(0 0 4px var(--neon-pink)); }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateZ(30px) scale(0.5); }
+            to { opacity: 1; transform: translateZ(30px) scale(1); }
+        }
+
+        .winning-cell {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: white !important;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2) !important;
+        }
+
+        /* Glass Panels */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transform-style: preserve-3d;
+        }
+
+        /* Ambient Background */
+        .ambient-glow {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(0,243,255,0.05) 0%, rgba(255,0,255,0.03) 60%, transparent 80%);
+            z-index: -1;
+            transform: translateZ(-100px);
+            pointer-events: none;
+        }
+        
+        /* Modal Inputs */
+        .input-glass {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            text-align: center;
+            letter-spacing: 0.1em;
+        }
+        .input-glass:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+        
+        /* Responsive Grid Logic */
+        #board-container {
+            /* Maximize size but maintain aspect ratio and fit in view */
+            width: 100%;
+            max-width: 500px; /* Tablet/Desktop cap */
+            aspect-ratio: 1/1;
+            max-height: 60vh; /* Don't get too tall on landscape mobile */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="tilt-container" class="tilt-scene">
+        <div class="ambient-glow"></div>
+
+        <!-- HEADER SECTION -->
+        <div class="w-full flex flex-col items-center z-10 layer-top flex-shrink-0">
+            <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold title-font mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 drop-shadow-2xl text-center">
+                TIC TAC TOE
+            </h1>
+            
+            <!-- Info Badge -->
+            <div id="grid-indicator" class="text-[10px] sm:text-xs font-mono text-cyan-200 bg-slate-800/80 px-3 py-1 rounded-full border border-cyan-500/30 mb-2 shadow-[0_0_10px_rgba(0,243,255,0.1)] transition-all duration-300">
+                3x3 | WIN: 3
+            </div>
+
+            <!-- Scores -->
+            <div class="flex gap-3 w-full max-w-[300px] justify-center mb-2 layer-mid">
+                <div class="glass-panel rounded-lg p-2 flex-1 flex flex-col items-center justify-center transition-all duration-300" id="p1-panel">
+                    <span class="text-cyan-400 font-bold text-[10px] tracking-widest mb-0.5">PLAYER X</span>
+                    <span id="score-x" class="text-xl sm:text-2xl font-bold title-font">0</span>
+                </div>
+                <div class="glass-panel rounded-lg p-2 flex-1 flex flex-col items-center justify-center transition-all duration-300" id="p2-panel">
+                    <span class="text-fuchsia-400 font-bold text-[10px] tracking-widest mb-0.5">PLAYER O</span>
+                    <span id="score-o" class="text-xl sm:text-2xl font-bold title-font">0</span>
+                </div>
+            </div>
+
+            <!-- Room ID (Online) -->
+            <div id="room-info" class="hidden mb-1 px-3 py-0.5 rounded-full bg-slate-800/80 border border-slate-600 text-[10px] font-mono tracking-widest text-emerald-400 animate-pulse">
+                ROOM: <span id="current-room-id" class="text-white font-bold">---</span>
+            </div>
+
+            <!-- Status -->
+            <div id="status-message" class="h-5 text-center text-slate-300 font-medium tracking-wide text-xs sm:text-sm layer-base truncate px-4 w-full">
+                Initializing...
+            </div>
+        </div>
+
+        <!-- BOARD SECTION (Flexible Growth) -->
+        <div id="board-container" class="relative z-10 layer-mid flex items-center justify-center my-2 sm:my-4">
+            <div class="absolute -inset-2 bg-gradient-to-r from-cyan-500 to-fuchsia-500 rounded-xl blur-xl opacity-20 layer-back"></div>
+            
+            <div class="glass-panel p-2 sm:p-3 rounded-xl w-full h-full flex items-center justify-center">
+                <div id="board" class="grid gap-1.5 sm:gap-2 w-full h-full">
+                    <!-- Cells generated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS SECTION -->
+        <div class="flex flex-col gap-2 w-full max-w-[300px] z-10 layer-top flex-shrink-0">
+            <div class="grid grid-cols-3 gap-2 bg-slate-800/60 backdrop-blur-md p-1 rounded-lg border border-slate-700/50">
+                <button id="mode-cpu" class="py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg">CPU</button>
+                <button id="mode-pvp" class="py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-slate-700 text-slate-300 hover:text-white">LOCAL</button>
+                <button id="mode-online" class="py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-slate-700 text-slate-300 hover:text-white">ONLINE</button>
+            </div>
+            <button id="restart-btn" class="w-full py-3 rounded-lg font-bold tracking-wider text-white border border-white/10 bg-white/5 hover:bg-white/10 flex items-center justify-center gap-2 transition-all active:scale-95 text-xs sm:text-sm">
+                RESET (3x3)
+            </button>
+        </div>
+    </div>
+
+    <!-- ONLINE LOBBY MODAL -->
+    <div id="lobby-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300 bg-black/80 backdrop-blur-md px-4">
+        <div class="glass-panel bg-slate-900 border border-slate-600 p-6 rounded-2xl shadow-2xl transform scale-95 transition-transform duration-300 w-full max-w-sm flex flex-col items-center">
+            <h2 class="text-lg font-bold text-white mb-4 title-font tracking-wide">MULTIPLAYER</h2>
+            <div class="w-full flex flex-col gap-3">
+                <button id="btn-create-room" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-lg font-bold text-white text-sm">CREATE ROOM</button>
+                
+                <div class="relative flex items-center py-1">
+                    <div class="flex-grow border-t border-slate-700"></div>
+                    <span class="flex-shrink-0 mx-3 text-slate-500 text-[10px]">OR</span>
+                    <div class="flex-grow border-t border-slate-700"></div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="join-room-input" placeholder="CODE" maxlength="6" class="flex-1 p-2 rounded-lg input-glass font-mono text-base placeholder-slate-500 uppercase">
+                    <button id="btn-join-room" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 rounded-lg font-bold text-white text-sm">JOIN</button>
+                </div>
+            </div>
+            <button id="btn-cancel-lobby" class="mt-4 text-slate-400 py-2 px-4 text-xs underline">Back to Game</button>
+        </div>
+    </div>
+
+    <!-- WINNER MODAL -->
+    <div id="winner-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 bg-black/60 backdrop-blur-sm px-4">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-2xl transform scale-90 transition-transform duration-300 flex flex-col items-center w-full max-w-xs glass-panel">
+            <div id="modal-icon" class="text-5xl mb-3 animate-bounce">🏆</div>
+            <h2 id="modal-title" class="text-xl font-bold text-white mb-1 text-center title-font bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">PLAYER X WINS!</h2>
+            <p id="modal-subtitle" class="text-slate-400 mb-5 text-center text-xs">Nicely done.</p>
+            <button id="btn-modal-action" onclick="handleModalAction()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-transform text-sm">
+                PLAY AGAIN
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        let app, auth, db, user, onlineUnsubscribe = null, myOnlineRole = null, currentRoomId = null;
+
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            const initAuth = async () => {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                else await signInAnonymously(auth);
+            };
+            initAuth();
+            onAuthStateChanged(auth, (u) => { user = u; if(user) updateStatus(); });
+        } catch (e) { console.error("FB Init Err", e); }
+
+        const boardElement = document.getElementById('board');
+        const statusElement = document.getElementById('status-message');
+        const scoreXElement = document.getElementById('score-x');
+        const scoreOElement = document.getElementById('score-o');
+        const gridIndicator = document.getElementById('grid-indicator');
+        const winnerModal = document.getElementById('winner-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalIcon = document.getElementById('modal-icon');
+        const modalSubtitle = document.getElementById('modal-subtitle');
+        const btnModalAction = document.getElementById('btn-modal-action');
+        const lobbyModal = document.getElementById('lobby-modal');
+        const roomInfo = document.getElementById('room-info');
+        const roomInfoText = document.getElementById('current-room-id');
+        const btnPvp = document.getElementById('mode-pvp');
+        const btnCpu = document.getElementById('mode-cpu');
+        const btnOnline = document.getElementById('mode-online');
+
+        let currentGridSize = 3;
+        let gameState = [];
+        let currentPlayer = 'X';
+        let isGameActive = true;
+        let scoreX = 0;
+        let scoreO = 0;
+        let gameMode = 'cpu'; 
+        let isDrawState = false;
+
+        const X_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full x-mark"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+        const O_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full o-mark"><circle cx="12" cy="12" r="10"></circle></svg>`;
+
+        // --- RESPONSIVE 3D TILT ---
+        const tiltContainer = document.getElementById('tilt-container');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let currentRotateX = 0, currentRotateY = 0;
+
+        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+        // Handle Touch Move for mobile tilt
+        document.addEventListener('touchmove', (e) => {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        }, { passive: true });
+
+        function animate() {
+            const midX = window.innerWidth / 2;
+            const midY = window.innerHeight / 2;
+            // Reduce tilt intensity on smaller screens for usability
+            const intensity = window.innerWidth < 600 ? 5 : 12; 
+            
+            const targetY = ((mouseX - midX) / midX) * intensity;
+            const targetX = -((mouseY - midY) / midY) * intensity;
+            
+            currentRotateX += (targetX - currentRotateX) * 0.1;
+            currentRotateY += (targetY - currentRotateY) * 0.1;
+            
+            if (tiltContainer) tiltContainer.style.transform = `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`;
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- GAME LOGIC ---
+        function initBoard() {
+            gameState = Array(currentGridSize * currentGridSize).fill(null);
+            boardElement.innerHTML = '';
+            boardElement.style.gridTemplateColumns = `repeat(${currentGridSize}, minmax(0, 1fr))`;
+            gridIndicator.textContent = `GRID: ${currentGridSize}x${currentGridSize} | WIN: ${currentGridSize}`;
+
+            for (let i = 0; i < gameState.length; i++) {
+                const cell = document.createElement('div');
+                // Use aspect-square for perfect squares, rounded-md for small screens
+                cell.className = `cell aspect-square rounded-md sm:rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-center cursor-pointer relative overflow-hidden`;
+                cell.dataset.index = i;
+                cell.addEventListener('click', handleCellClick);
+                const content = document.createElement('div');
+                content.className = 'w-full h-full pointer-events-none flex items-center justify-center p-[10%]'; // Percent padding ensures icons don't touch edges
+                content.style.transformStyle = 'preserve-3d';
+                cell.appendChild(content);
+                boardElement.appendChild(cell);
+            }
+        }
+
+        async function handleCellClick(e) {
+            const cell = e.target.closest('.cell');
+            if(!cell) return;
+            const index = parseInt(cell.dataset.index);
+            if (gameState[index] || !isGameActive) return;
+
+            if (gameMode === 'online') {
+                if (!user || currentPlayer !== myOnlineRole) { showToast("Not your turn!"); return; }
+                await sendMoveToFirebase(index);
+                return;
+            }
+
+            makeMove(index, currentPlayer);
+            if (isGameActive && gameMode === 'cpu' && currentPlayer === 'O') {
+                statusElement.textContent = "CPU Thinking...";
+                boardElement.style.pointerEvents = 'none';
+                setTimeout(() => { cpuMove(); boardElement.style.pointerEvents = 'auto'; }, 400);
+            }
+        }
+
+        function makeMove(index, player) {
+            gameState[index] = player;
+            const cell = boardElement.children[index].firstElementChild;
+            cell.innerHTML = player === 'X' ? X_ICON : O_ICON;
+            const cellContainer = boardElement.children[index];
+            cellContainer.classList.add(player === 'X' ? 'border-cyan-500/30' : 'border-fuchsia-500/30');
+            // Subtle 3D pop
+            cellContainer.style.transform = "translateZ(20px) scale(1.02)";
+
+            const winner = checkWin(gameState, currentGridSize);
+            if (winner) endGame(false, winner);
+            else if (!gameState.includes(null)) endGame(true);
+            else {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateStatus();
+            }
+        }
+
+        // --- WIN LOGIC: N in a row for N size ---
+        function checkWin(board, size, silent = false) {
+            // Rows
+            for (let i = 0; i < size; i++) if (checkLine(board, i * size, 1, size, silent)) return board[i * size];
+            // Cols
+            for (let i = 0; i < size; i++) if (checkLine(board, i, size, size, silent)) return board[i];
+            // Diagonals
+            if (checkLine(board, 0, size + 1, size, silent)) return board[0];
+            if (checkLine(board, size - 1, size - 1, size, silent)) return board[size - 1];
+            return null;
+        }
+
+        function checkLine(board, start, step, count, silent) {
+            const first = board[start];
+            if (!first) return false;
+            let indices = [start];
+            for (let i = 1; i < count; i++) {
+                let idx = start + i * step;
+                if (board[idx] !== first) return false;
+                indices.push(idx);
+            }
+            if (!silent) highlight(indices);
+            return true;
+        }
+
+        function highlight(indices) {
+            if (!isGameActive && gameMode !== 'cpu_sim') return;
+            indices.forEach(idx => {
+                const cell = boardElement.children[idx];
+                if (cell) {
+                    cell.classList.add('winning-cell', 'ring-2', 'ring-white');
+                    cell.style.transform = 'translateZ(40px) scale(1.1)';
+                }
+            });
+        }
+
+        function endGame(draw, winner) {
+            isGameActive = false;
+            if (draw) {
+                isDrawState = true;
+                showModal('DRAW!', '⚔️', `Expanding to ${currentGridSize + 1}x${currentGridSize + 1}...`, 'EXPAND BOARD');
+                statusElement.textContent = "DRAW - BOARD EXPANDING";
+            } else {
+                isDrawState = false;
+                if (winner === 'X') scoreX++; else scoreO++;
+                updateScoreboard();
+                let wName = `Player ${winner}`;
+                if (gameMode === 'online') wName = (winner === myOnlineRole) ? "YOU WIN!" : "OPPONENT WINS";
+                else if (gameMode === 'cpu') wName = (winner === 'X') ? 'PLAYER WINS' : 'CPU WINS';
+                const emoji = winner === 'X' ? '💎' : '🔮';
+                showModal(wName, emoji, 'Winner!', 'PLAY AGAIN');
+                statusElement.textContent = `${wName}`;
+            }
+        }
+
+        // --- AI ---
+        function cpuMove() {
+            let available = gameState.map((v, i) => v === null ? i : null).filter(v => v !== null);
+            if (available.length === 0) return;
+
+            // 3x3 Minimax
+            if (currentGridSize === 3) {
+                 let bestScore = -Infinity; let move;
+                 for (let idx of available) {
+                     gameState[idx] = 'O';
+                     let score = minimax(gameState, 0, false);
+                     gameState[idx] = null;
+                     if (score > bestScore) { bestScore = score; move = idx; }
+                 }
+                 makeMove(move, 'O');
+                 return;
+            }
+
+            // Heuristic >3x3
+            for (let idx of available) { gameState[idx] = 'O'; if (checkWin(gameState, currentGridSize, true)) { makeMove(idx, 'O'); return; } gameState[idx] = null; }
+            for (let idx of available) { gameState[idx] = 'X'; if (checkWin(gameState, currentGridSize, true)) { gameState[idx] = null; makeMove(idx, 'O'); return; } gameState[idx] = null; }
+            makeMove(available[Math.floor(Math.random() * available.length)], 'O');
+        }
+
+        const scores = { X: -10, O: 10, tie: 0 };
+        function minimax(board, depth, isMaximizing) {
+            let res = checkWin(board, 3, true);
+            if (res === 'X') return -10 + depth; if (res === 'O') return 10 - depth; if (!board.includes(null)) return 0;
+            if (isMaximizing) {
+                let best = -Infinity; for (let i = 0; i < board.length; i++) { if (board[i] === null) { board[i] = 'O'; best = Math.max(best, minimax(board, depth+1, false)); board[i] = null; } } return best;
+            } else {
+                let best = Infinity; for (let i = 0; i < board.length; i++) { if (board[i] === null) { board[i] = 'X'; best = Math.min(best, minimax(board, depth+1, true)); board[i] = null; } } return best;
+            }
+        }
+
+        // --- MODAL & RESET ---
+        window.handleModalAction = function() { gameMode === 'online' ? handleOnlineReset() : handleLocalReset(); }
+        function handleLocalReset() {
+            hideModal();
+            currentGridSize = isDrawState ? currentGridSize + 1 : 3;
+            if (currentGridSize > 6) currentGridSize = 3; // Safety cap to prevent too small cells on mobile
+            isDrawState = false; gameState = []; isGameActive = true; currentPlayer = 'X';
+            initBoard(); updateStatus();
+        }
+        async function handleOnlineReset() {
+            if (!currentRoomId) return;
+            hideModal();
+            if (myOnlineRole === 'X') {
+                let newSize = isDrawState ? currentGridSize + 1 : 3;
+                if (newSize > 6) newSize = 3;
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', currentRoomId), {
+                    board: Array(newSize * newSize).fill(null), gridSize: newSize, currentPlayer: 'X', status: 'playing', winner: null
+                });
+            }
+        }
+        function hideModal() {
+            winnerModal.classList.add('opacity-0', 'pointer-events-none');
+            winnerModal.children[0].classList.remove('scale-90');
+            winnerModal.children[0].classList.add('scale-75'); // Smaller scale animation
+        }
+        function updateScoreboard() { scoreXElement.textContent = scoreX; scoreOElement.textContent = scoreO; }
+        function updateStatus() {
+            if (!isGameActive) return;
+            const p1Panel = document.getElementById('p1-panel');
+            const p2Panel = document.getElementById('p2-panel');
+            
+            // Highlight active player panel
+            p1Panel.style.background = currentPlayer === 'X' ? 'rgba(0, 243, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+            p2Panel.style.background = currentPlayer === 'O' ? 'rgba(255, 0, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+
+            if (gameMode === 'online') {
+                statusElement.textContent = (currentPlayer === myOnlineRole) ? `YOUR TURN` : `OPPONENT'S TURN`;
+                statusElement.className = (currentPlayer === myOnlineRole) ? "h-5 text-center font-bold tracking-wide text-emerald-400 text-xs sm:text-sm layer-base w-full" : "h-5 text-center font-medium text-slate-400 text-xs sm:text-sm layer-base w-full";
+            } else {
+                statusElement.textContent = (gameMode === 'cpu' && currentPlayer === 'O') ? "CPU THINKING" : `PLAYER ${currentPlayer} TURN`;
+                statusElement.className = `h-5 text-center font-medium tracking-wide ${currentPlayer === 'X' ? 'text-cyan-400' : 'text-fuchsia-400'} text-xs sm:text-sm layer-base w-full`;
+            }
+        }
+        function showModal(title, icon, subtitle, btnText) {
+            modalTitle.textContent = title; modalIcon.textContent = icon; modalSubtitle.textContent = subtitle || ''; btnModalAction.textContent = btnText || 'PLAY AGAIN';
+            winnerModal.classList.remove('opacity-0', 'pointer-events-none');
+            winnerModal.children[0].classList.remove('scale-90');
+            winnerModal.children[0].classList.add('scale-100');
+        }
+        function showToast(msg) { statusElement.textContent = msg; setTimeout(updateStatus, 2000); }
+
+        // --- FIREBASE SYNC ---
+        async function sendMoveToFirebase(index) {
+            const nextP = currentPlayer === 'X' ? 'O' : 'X';
+            const newBoard = [...gameState];
+            newBoard[index] = currentPlayer;
+            const winner = checkWin(newBoard, currentGridSize, true);
+            const isTie = !newBoard.includes(null);
+            let st = 'playing', w = null;
+            if (winner) { st = 'finished'; w = winner; } else if (isTie) { st = 'finished'; w = 'draw'; }
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', currentRoomId), { board: newBoard, currentPlayer: nextP, status: st, winner: w });
+        }
+        function syncBoardFromSnapshot(data) {
+            if (data.gridSize && data.gridSize !== currentGridSize) { currentGridSize = data.gridSize; initBoard(); }
+            gameState = data.board; currentPlayer = data.currentPlayer;
+            gameState.forEach((val, idx) => {
+                const cellC = boardElement.children[idx]; if (!cellC) return;
+                const cellContent = cellC.firstElementChild;
+                if (val && cellContent.innerHTML === '') {
+                    cellContent.innerHTML = val === 'X' ? X_ICON : O_ICON;
+                    cellC.classList.add(val === 'X' ? 'border-cyan-500/30' : 'border-fuchsia-500/30');
+                    cellC.style.transform = "translateZ(20px) scale(1.02)";
+                } else if (!val) {
+                    cellContent.innerHTML = ''; cellC.className = `cell aspect-square rounded-md sm:rounded-lg bg-slate-800/50 border border-slate-700/50 flex items-center justify-center cursor-pointer relative overflow-hidden`; cellC.style.transform = "";
+                }
+            });
+            if (data.status === 'finished') { isGameActive = false; if (data.winner === 'draw') endGame(true); else { checkWin(gameState, currentGridSize); endGame(false, data.winner); } } else { isGameActive = true; hideModal(); updateStatus(); }
+        }
+
+        // --- BUTTONS ---
+        function setModeUI(mode) {
+            btnPvp.className = btnCpu.className = btnOnline.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-slate-700 text-slate-300 hover:text-white";
+            if (mode === 'pvp') btnPvp.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg";
+            if (mode === 'cpu') btnCpu.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg";
+            if (mode === 'online') btnOnline.className = "py-2 px-1 rounded-md text-[10px] sm:text-xs font-bold transition-all bg-emerald-600 text-white shadow-lg";
+        }
+        btnCpu.addEventListener('click', () => { gameMode = 'cpu'; leaveRoom(); setModeUI('cpu'); resetFull(); });
+        btnPvp.addEventListener('click', () => { gameMode = 'pvp'; leaveRoom(); setModeUI('pvp'); resetFull(); });
+        btnOnline.addEventListener('click', () => { gameMode = 'online'; setModeUI('online'); lobbyModal.classList.remove('opacity-0', 'pointer-events-none'); });
+        document.getElementById('btn-cancel-lobby').addEventListener('click', () => { lobbyModal.classList.add('opacity-0', 'pointer-events-none'); btnCpu.click(); });
+        document.getElementById('btn-create-room').addEventListener('click', async () => { if (!user) return; const rid = Math.floor(100000 + Math.random() * 900000).toString(); currentRoomId = rid; myOnlineRole = 'X'; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'games', rid), { board: Array(9).fill(null), gridSize: 3, currentPlayer: 'X', status: 'waiting', winner: null, xPlayer: user.uid, oPlayer: null }); startOnline(rid); });
+        document.getElementById('btn-join-room').addEventListener('click', async () => { if (!user) return; const val = document.getElementById('join-room-input').value; if (val.length !== 6) return; const ref = doc(db, 'artifacts', appId, 'public', 'data', 'games', val); const snap = await getDoc(ref); if (snap.exists() && (snap.data().status === 'waiting' || !snap.data().oPlayer)) { currentRoomId = val; myOnlineRole = 'O'; await updateDoc(ref, { oPlayer: user.uid, status: 'playing' }); startOnline(val); } else alert("Cannot join."); });
+        function startOnline(id) { lobbyModal.classList.add('opacity-0', 'pointer-events-none'); roomInfo.classList.remove('hidden'); roomInfoText.textContent = id; initBoard(); scoreX=0; scoreO=0; updateScoreboard(); onlineUnsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'games', id), (d) => { if(d.data()) syncBoardFromSnapshot(d.data()); }); }
+        function leaveRoom() { if (onlineUnsubscribe) onlineUnsubscribe(); currentRoomId = null; roomInfo.classList.add('hidden'); }
+        function resetFull() { currentGridSize = 3; scoreX = 0; scoreO = 0; updateScoreboard(); handleLocalReset(); }
+        document.getElementById('restart-btn').addEventListener('click', resetFull);
+
+        initBoard(); updateStatus();
+    </script>
+</body>
+</html>
+
+
