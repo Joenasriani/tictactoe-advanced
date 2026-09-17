@@ -2,6 +2,10 @@
 
 Play URL: https://joenasriani.github.io/tictactoe-advanced/
 
+Itch.io: https://joenasr.itch.io/tic-tac-toe-reimagined
+
+The itch.io release is published as **Tic Tac Toe Reimagined**.
+
 A browser-based Tic-Tac-Toe game implemented in a single `index.html` file. It includes a 3D tilt/parallax interface, CPU play, local two-player play, adaptive board expansion after draws, and code for Firebase-backed online rooms.
 
 ## Run locally
@@ -47,6 +51,14 @@ If `__firebase_config` is not supplied, the code falls back to an empty configur
 - Mouse: move the pointer to tilt the board; click a cell to place a mark.
 - Touch: tap a cell to place a mark; touch movement also affects the tilt position.
 
+## Search and release identity
+
+- Canonical browser build: https://joenasriani.github.io/tictactoe-advanced/
+- Itch.io release: https://joenasr.itch.io/tic-tac-toe-reimagined
+- Source repository: https://github.com/Joenasriani/tictactoe-advanced
+
+The repository includes `robots.txt` and `sitemap.xml` so crawlers can discover the canonical browser build.
+
 ## Repository status
 
-This repository contains `README.md` and `index.html`. No separate `LICENSE` file is currently included, so the repository should not be treated as having an explicit repository-level license solely from the previous README wording.
+No separate `LICENSE` file is currently included, so the repository should not be treated as having an explicit repository-level license solely from previous README wording.
